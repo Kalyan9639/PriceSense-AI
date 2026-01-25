@@ -149,17 +149,8 @@ st.markdown("Visualize how your pricing strategy affects **Profit** and **Revenu
 st.markdown("---")
 
 # Instantiate Logic
-@st.cache_resource
-def load_price_sense():
-    ps = PriceSense()
-    
-    if not ps.model_loaded:
-        raise RuntimeError("ML model failed to load")
-
-    return ps
-
 try:
-    price_sense = load_price_sense()
+    price_sense = PriceSense()
 except Exception as e:
     st.error(f"❌ Error loading model: {e}")
     st.stop()
@@ -205,7 +196,7 @@ if analyze_btn:
             
             # Generate Chart (predict_and_plot now correctly returns fig, None)
             fig, _ = price_sense.plot_profit_curve(input_data)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True,width='stretch')
             
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -456,6 +447,4 @@ else:
 #         </div>
 #         """, 
 #         unsafe_allow_html=True
-
 #     )
-
