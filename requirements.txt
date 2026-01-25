@@ -1,0 +1,6 @@
+pandas
+plotly
+# scikit-learn
+huggingface-hub
+streamlit
+IPykernel
