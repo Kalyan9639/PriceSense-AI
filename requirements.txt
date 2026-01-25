@@ -1,9 +1,9 @@
 pandas
 plotly
-# scikit-learn
+scikit-learn
 huggingface-hub
 streamlit==1.32.2
-joblib
 pydantic
+
 
 
