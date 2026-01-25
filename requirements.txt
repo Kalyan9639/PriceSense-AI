@@ -4,5 +4,6 @@ plotly
 huggingface-hub
 streamlit==1.32.2
 joblib
+pydantic
 
 
