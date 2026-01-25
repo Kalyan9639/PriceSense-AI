@@ -3,4 +3,6 @@ plotly
 # scikit-learn
 huggingface-hub
 streamlit
+altair==4.2.2
+
 IPykernel
