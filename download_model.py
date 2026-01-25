@@ -7,7 +7,7 @@ MODEL_DIR = "models"
 MODEL_NAME = "rf_model.joblib"
 
 # 🔁 Change these
-REPO_ID = "your-username/your-model-repo"
+REPO_ID = "mr-checker/static-price-optimizer-model"
 FILENAME = "rf_model.joblib"
 
 def rfmodel():
@@ -27,3 +27,4 @@ def rfmodel():
         print("✅ Model already exists")
 
     return model_path
+
