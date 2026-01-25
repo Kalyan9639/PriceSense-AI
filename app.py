@@ -205,7 +205,7 @@ if analyze_btn:
             
             # Generate Chart (predict_and_plot now correctly returns fig, None)
             fig, _ = price_sense.plot_profit_curve(input_data)
-            st.plotly_chart(fig, use_container_width=True,width='stretch')
+            st.plotly_chart(fig, use_container_width=True)
             
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -458,3 +458,4 @@ else:
 #         unsafe_allow_html=True
 
 #     )
+
