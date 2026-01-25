@@ -95,10 +95,16 @@ class PriceSense:
             if os.path.exists(model_path):
                 self.model = joblib.load(model_path)
                 self.model_loaded = True
+            # else:
+            #     print(f"⚠️ Model not found at {model_path}. Using fallback logic.")
             else:
-                print(f"⚠️ Model not found at {model_path}. Using fallback logic.")
+                import streamlit as st
+                st.warning(f"⚠️ Model file NOT found at: {model_path}")
+                
         except Exception as e:
-            print(f"❌ Error loading model: {e}")
+            # print(f"❌ Error loading model: {e}")
+            import streamlit as st
+            st.error(f"❌ CRITICAL ERROR LOADING MODEL: {str(e)}")
 
     def predict(self, input_data: PriceInput):
         """
@@ -196,3 +202,4 @@ class PriceSense:
         
 
         return fig, None
+
