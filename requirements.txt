@@ -3,6 +3,6 @@ plotly
 # scikit-learn
 huggingface-hub
 streamlit==1.32.2
+joblib
 
-IPykernel
 
