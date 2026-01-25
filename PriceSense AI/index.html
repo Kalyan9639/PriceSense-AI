@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PriceSense AI | Intelligent Pricing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        
+        /* Custom Animations */
+        .fade-in-up { animation: fadeInUp 1s ease-out forwards; opacity: 0; }
+        .delay-200 { animation-delay: 0.2s; }
+        .delay-400 { animation-delay: 0.4s; }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-white overflow-x-hidden">
+
+    <!-- Decorative Background Elements -->
+    <div class="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
+        <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-600 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-blob"></div>
+        <div class="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-600 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-blob animation-delay-2000"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="flex justify-between items-center px-8 py-6 max-w-7xl mx-auto">
+        <div class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
+            PriceSense AI
+        </div>
+        <a href="http://localhost:8501" class="px-6 py-2 rounded-full border border-slate-600 hover:border-blue-500 hover:text-blue-400 transition-all duration-300 text-sm font-medium">
+            Launch App
+        </a>
+    </nav>
+
+    <!-- Main Hero Section -->
+    <main class="flex flex-col items-center justify-center text-center px-4 mt-16 mb-24 max-w-4xl mx-auto">
+        
+        <!-- Title & Subtitle -->
+        <h1 class="text-5xl md:text-7xl font-bold tracking-tight mb-6 fade-in-up bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-100 to-slate-400">
+            Smart Pricing for <br> Smarter Decisions.
+        </h1>
+        
+        <p class="text-lg md:text-xl text-slate-400 mb-10 max-w-2xl leading-relaxed fade-in-up delay-200">
+            Stop guessing and start optimizing. PriceSense AI leverages advanced machine learning to simulate demand, predict revenue, and visualize price sensitivity in real-time. Designed for product leaders who need data-backed confidence.
+        </p>
+
+        <!-- CTA Button -->
+        <div class="fade-in-up delay-400">
+            <a href="http://localhost:8501" class="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white transition-all duration-200 bg-blue-600 font-pj rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 hover:bg-blue-500 hover:scale-105 shadow-[0_0_20px_rgba(37,99,235,0.5)]">
+                Try Now
+                <svg class="w-5 h-5 ml-2 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+            </a>
+            <p class="mt-4 text-xs text-slate-500">No credit card required • Instant analysis</p>
+        </div>
+
+    </main>
+
+    <!-- Feature Section (Grid) -->
+    <section class="max-w-7xl mx-auto px-6 pb-24 grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <div class="glass-card p-8 rounded-2xl hover:bg-slate-800/50 transition-colors">
+            <div class="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center mb-4">
+                <span class="text-2xl">🤖</span>
+            </div>
+            <h3 class="text-xl font-semibold mb-2 text-white">Demand Prediction</h3>
+            <p class="text-slate-400">Our Random Forest algorithm analyzes market factors to accurately forecast unit sales at any price point.</p>
+        </div>
+
+        <div class="glass-card p-8 rounded-2xl hover:bg-slate-800/50 transition-colors">
+            <div class="w-12 h-12 bg-purple-500/10 rounded-lg flex items-center justify-center mb-4">
+                <span class="text-2xl">📈</span>
+            </div>
+            <h3 class="text-xl font-semibold mb-2 text-white">Profit Simulation</h3>
+            <p class="text-slate-400">Instantly see how cost, elasticity, and competitor pricing impact your bottom line before you go to market.</p>
+        </div>
+
+        <div class="glass-card p-8 rounded-2xl hover:bg-slate-800/50 transition-colors">
+            <div class="w-12 h-12 bg-emerald-500/10 rounded-lg flex items-center justify-center mb-4">
+                <span class="text-2xl">⚡</span>
+            </div>
+            <h3 class="text-xl font-semibold mb-2 text-white">Real-time Visuals</h3>
+            <p class="text-slate-400">Interactive charts allow you to visualize the "Goldilocks Zone" for your product's pricing strategy.</p>
+        </div>
+
+    </section>
+
+    <footer class="text-center py-8 text-slate-600 text-sm border-t border-slate-800">
+        &copy; 2025 PriceSense AI. All rights reserved.
+    </footer>
+
+</body>
+</html>
