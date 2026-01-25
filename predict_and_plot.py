@@ -10,8 +10,11 @@ from typing import Optional
 # -------------------------------------------------
 # CONSTANTS
 # -------------------------------------------------
-MEDIAN_VALUES_PATH = "median_values.json"
-MODEL_PATH = os.path.join("models", "rf_model.joblib")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+MODEL_PATH = os.path.join(BASE_DIR, "models", "rf_model.joblib")
+MEDIAN_VALUES_PATH = os.path.join(BASE_DIR, "median_values.json")
+
 
 # Default fallbacks if JSON is missing
 DEFAULT_MEDIANS = {
@@ -191,4 +194,5 @@ class PriceSense:
             hovermode="x unified"
         )
         
+
         return fig, None
