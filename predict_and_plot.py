@@ -146,8 +146,13 @@ class PriceSense:
                 # This reorders the dataframe columns to match exactly 
                 # what the model saw during training.
                 df = df[self.model.feature_names_in_]
-            
-            demand = float(self.model.predict(df)[0])
+
+            try:
+                demand = float(self.model.predict(df)[0])
+            except:
+                import streamlit as st
+                st.error(f"⚠️ Column Mismatch Error: {e}")
+                st.stop()
         else:
             # Fallback logic
             filled = input_data.get_filled_dict()
@@ -236,5 +241,6 @@ class PriceSense:
         
 
         return fig, None
+
 
 
