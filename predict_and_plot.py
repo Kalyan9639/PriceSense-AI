@@ -106,6 +106,32 @@ class PriceSense:
             import streamlit as st
             st.error(f"❌ CRITICAL ERROR LOADING MODEL: {str(e)}")
 
+    # def predict(self, input_data: PriceInput):
+    #     """
+    #     Returns: demand, revenue, profit
+    #     """
+    #     df = input_data.to_dataframe()
+        
+    #     if self.model_loaded:
+    #         demand = float(self.model.predict(df)[0])
+    #     else:
+    #         # Fallback logic for testing without model
+    #         filled = input_data.get_filled_dict()
+    #         p = filled["Price"]
+    #         e = filled["Elasticity Index"]
+    #         demand = max(0, 1000 * (1 - p/2000) * e)
+
+    #     # Business Metrics
+    #     # Note: We use the filled dictionary to get the Price and Cost used in calc
+    #     filled_vals = input_data.get_filled_dict()
+    #     price_val = filled_vals["Price"]
+    #     cost_val = filled_vals["Storage Cost"] # Using Storage Cost as unit cost
+
+    #     revenue = demand * price_val
+    #     profit = demand * (price_val - cost_val)
+
+    #     return demand, revenue, profit
+
     def predict(self, input_data: PriceInput):
         """
         Returns: demand, revenue, profit
@@ -113,25 +139,33 @@ class PriceSense:
         df = input_data.to_dataframe()
         
         if self.model_loaded:
+            # ---------------------------------------------------------
+            # 🛡️ FIX: FORCE COLUMN ORDER TO MATCH TRAINING DATA
+            # ---------------------------------------------------------
+            if hasattr(self.model, "feature_names_in_"):
+                # This reorders the dataframe columns to match exactly 
+                # what the model saw during training.
+                df = df[self.model.feature_names_in_]
+            
             demand = float(self.model.predict(df)[0])
         else:
-            # Fallback logic for testing without model
+            # Fallback logic
             filled = input_data.get_filled_dict()
             p = filled["Price"]
             e = filled["Elasticity Index"]
             demand = max(0, 1000 * (1 - p/2000) * e)
 
         # Business Metrics
-        # Note: We use the filled dictionary to get the Price and Cost used in calc
         filled_vals = input_data.get_filled_dict()
         price_val = filled_vals["Price"]
-        cost_val = filled_vals["Storage Cost"] # Using Storage Cost as unit cost
+        cost_val = filled_vals["Storage Cost"] 
 
         revenue = demand * price_val
         profit = demand * (price_val - cost_val)
 
         return demand, revenue, profit
 
+    
     def plot_profit_curve(self, input_data: PriceInput, save_dir="visualization"):
         """
         Generates the Plotly figure.
@@ -202,4 +236,5 @@ class PriceSense:
         
 
         return fig, None
+
 
