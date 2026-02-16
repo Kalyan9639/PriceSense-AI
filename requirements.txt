@@ -1,4 +1,4 @@
-
+altair
 fastapi
 uvicorn
 pydantic
@@ -10,4 +10,5 @@ huggingface_hub
 python-multipart
 requests
 plotly
+
 streamlit
