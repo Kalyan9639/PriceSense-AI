@@ -1,14 +1,26 @@
-altair
-fastapi
-uvicorn
-pydantic
-scikit-learn
-joblib
-pandas
-numpy
-huggingface_hub
-python-multipart
-requests
-plotly
+# altair
+# fastapi
+# uvicorn
+# pydantic
+# scikit-learn
+# joblib
+# pandas
+# numpy
+# huggingface_hub
+# python-multipart
+# requests
+# plotly
+
+# streamlit
+
 
 streamlit
+pandas
+numpy
+scikit-learn
+joblib
+huggingface_hub
+plotly
+altair<5
+requests
+
