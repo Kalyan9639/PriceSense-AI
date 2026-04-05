@@ -100,7 +100,8 @@ def load_resources():
 def prepare_input_dataframe(data: Dict[str, Any]) -> tuple:
     """Prepares the input DataFrame for prediction, filling missing values with medians."""
     # Map API fields to model features exactly
-    # Expecting data dict keys: price, cost, competitor_price, discount, elasticity_index, return_rate, reviews
+    # Expected keys: price, cost, competitor_price, discount (decimal 0.0-1.0),
+    # elasticity_index, reviews. Optional: return_rate (filled from median_values.json if absent).
     
     price = data.get("price")
     competitor_price = data.get("competitor_price")
@@ -157,8 +158,16 @@ def predict_metrics(data: Dict[str, Any]) -> Dict[str, float]:
         logger.error(f"Prediction error: {e}")
         raise RuntimeError(f"Prediction failed: {str(e)}")
 
-def get_sensitivity_analysis(data: Dict[str, Any]) -> Dict[str, Any]:
-    """Performs sensitivity analysis."""
+def get_sensitivity_analysis(data: Dict[str, Any], inr_rate: float = 1.0, market_presence: float = 100.0) -> Dict[str, Any]:
+    """Performs sensitivity analysis.
+    
+    Args:
+        data: payload with USD-scale price/cost values.
+        inr_rate: conversion factor (INR_TO_USD). When provided, the Plotly
+                  figure axes are expressed in INR while the model runs in USD.
+        market_presence: percentage (1-100) of market the business can capture.
+                         Scales profit curve to match the realistic_demand in the UI.
+    """
     if model is None:
         load_resources()
         
@@ -215,30 +224,38 @@ def get_sensitivity_analysis(data: Dict[str, Any]) -> Dict[str, Any]:
         
         for p, d in zip(prices, demands):
             d = max(0.0, float(d))
-            rev = d * p
-            prof = d * (p - used_cost)
+            # Apply market presence scaling to match the UI's realistic_demand logic
+            d_realistic = d * (market_presence / 100.0)
+            rev = d_realistic * p
+            prof = d_realistic * (p - used_cost)
             revenues.append(rev)
             profits.append(prof)
             
+        # Scale USD values → INR for plotting (model internals stay in USD)
+        plot_prices  = [p * inr_rate for p in prices]
+        plot_profits = [pf * inr_rate for pf in profits]
+        plot_current_price = price * inr_rate
+        currency_sym = "₹" if inr_rate != 1.0 else "$"
+
         # --- Create Plotly Figure ---
         fig = go.Figure()
         fig.add_trace(go.Scatter(
-            x=prices, 
-            y=profits, 
-            mode='lines', 
-            name='Profit',
+            x=plot_prices,
+            y=plot_profits,
+            mode='lines',
+            name='Monthly Profit',
             line=dict(color='#2ca02c', width=3),
             fill='tozeroy',
             fillcolor='rgba(44, 160, 44, 0.1)',
-            hovertemplate='Price: $%{x:.2f}<br>Profit: $%{y:.2f}<extra></extra>'
+            hovertemplate=f'Price: {currency_sym}%{{x:,.0f}}<br>Monthly Profit: {currency_sym}%{{y:,.0f}}<extra></extra>'
         ))
         
         fig.add_vline(
-            x=price, 
-            line_width=2, 
-            line_dash="dash", 
-            line_color="red", 
-            annotation_text="Current Price", 
+            x=plot_current_price,
+            line_width=2,
+            line_dash="dash",
+            line_color="red",
+            annotation_text="Current Price",
             annotation_position="top right"
         )
         
@@ -252,9 +269,9 @@ def get_sensitivity_analysis(data: Dict[str, Any]) -> Dict[str, Any]:
         )
 
         fig.update_layout(
-            title="Profit Sensitivity Analysis",
-            xaxis_title="Price ($)",
-            yaxis_title="Profit ($)",
+            title="Monthly Profit Sensitivity Analysis",
+            xaxis_title=f"Price ({currency_sym})",
+            yaxis_title=f"Monthly Profit ({currency_sym})",
             template="plotly_white",
             hovermode="x unified",
             margin=dict(l=40, r=40, t=60, b=40),
