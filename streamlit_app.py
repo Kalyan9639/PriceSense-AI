@@ -1,12 +1,23 @@
 
+import os
+import re
 import streamlit as st
 import json
 import plotly.graph_objects as go
 import pandas as pd
 import model_prediction as backend
+from dotenv import load_dotenv
+from sarvamai import SarvamAI
+
+load_dotenv()  # Load .env file
 
 # --- Configuration ---
-# No backend URL needed
+# Currency conversion: model was trained on USD; UI displays INR
+INR_TO_USD = 83.0  # 1 USD ≈ 83 INR (update periodically)
+
+# --- Sarvam AI Client ---
+_sarvam_key = os.getenv("SARVAM_API_KEY", "")
+sarvam_client = SarvamAI(api_subscription_key=_sarvam_key)
 
 # --- Page Config ---
 st.set_page_config(
@@ -228,34 +239,69 @@ st.markdown("---")
 
 st.markdown("<br>", unsafe_allow_html=True)
 
+# --- Elasticity Category Ranges (based on dataset distribution) ---
+elasticity_ranges = {
+    "Essential Good (Low Sensitivity)":         {"min": 0.5, "max": 0.9, "default": 0.7},
+    "Standard Product (Average Sensitivity)":   {"min": 0.9, "max": 1.3, "default": 1.1},
+    "Luxury / Non-Essential (High Sensitivity)": {"min": 1.3, "max": 1.8, "default": 1.5},
+}
+
 # --- Sidebar: Simulation Parameters ---
 with st.sidebar:
     st.header("Simulation Parameters")
     
     with st.form("simulation_form"):
-        price = st.number_input("Target Price ($)", min_value=0.0, value=249.0, step=1.0)
-        cost = st.number_input("Unit Cost ($)", min_value=0.0, value=85.0, step=1.0)
-        competitor_price = st.number_input("Competitor Average ($)", min_value=0.0, value=265.0, step=1.0)
+        price = st.number_input("Target Price (₹)", min_value=0.0, value=20667.0, step=100.0)
+        cost = st.number_input("Unit Cost (₹)", min_value=0.0, value=7055.0, step=100.0)
+        competitor_price = st.number_input("Competitor Average (₹)", min_value=0.0, value=21995.0, step=100.0)
         
         st.markdown("---")
-        elasticity_index = st.slider("Price Elasticity", 0.0, 5.0, 1.4, 0.1)
+
+        # Step A: Category picker
+        selected_cat = st.selectbox(
+            "Product Category",
+            options=list(elasticity_ranges.keys()),
+            index=1,
+            help="Select the category that best describes your product."
+        )
+
+        # Step B: Fine-tuning slider bounded to the chosen category
+        cat_bounds = elasticity_ranges[selected_cat]
+        elasticity_index = st.slider(
+            f"Fine-tune Sensitivity — {selected_cat.split(' (')[0]}",
+            min_value=cat_bounds["min"],
+            max_value=cat_bounds["max"],
+            value=cat_bounds["default"],
+            step=0.05,
+            help="Adjust where this specific product falls within its category's sensitivity range."
+        )
+
         discount = st.slider("Planned Discount (%)", 0.0, 100.0, 15.0, 1.0)
-        return_rate = st.number_input("Return Rate (%)", 0.0, 100.0, 4.2, 0.1)
         reviews = st.slider("Avg Review Score", 0.0, 5.0, 4.5, 0.1)
+
+        st.markdown("---")
+        market_presence = st.slider(
+            "Brand Awareness / Market Reach (%)",
+            min_value=1.0,
+            max_value=100.0,
+            value=15.0,
+            step=1.0,
+            help="100% = market leader (Dell/HP). 5–20% = new startup. Scales the industry demand down to your business reality."
+        )
         
         st.markdown("<br>", unsafe_allow_html=True)
         submitted = st.form_submit_button("✨ Run AI Prediction", type="primary")
 
 # --- Logic & Display ---
-# Prepare Inputs
+# Convert INR inputs → USD before sending to the model (model trained on USD scale)
 payload = {
-    "price": price,
-    "cost": cost,
-    "competitor_price": competitor_price,
-    "discount": discount,
+    "price": price / INR_TO_USD,
+    "cost": cost / INR_TO_USD,
+    "competitor_price": competitor_price / INR_TO_USD,
+    "discount": discount / 100.0,  # Convert from % (0-100) to decimal (0.0-1.0)
     "elasticity_index": elasticity_index,
-    "return_rate": return_rate,
     "reviews": reviews
+    # return_rate is intentionally omitted; backend fills it using median_values.json
 }
 
 # Load Model (Cached)
@@ -276,10 +322,16 @@ try:
     data = backend.predict_metrics(payload)
     
     pred_demand = data.get("predicted_demand", 0)
-    pred_revenue = data.get("predicted_revenue", 0)
-    pred_profit = data.get("predicted_profit", 0)
-    
-    margin = (pred_profit / pred_revenue * 100) if pred_revenue > 0 else 0
+
+    # Scale industry-level demand down to business reality
+    realistic_demand = pred_demand * (market_presence / 100.0)
+
+    # Calculate revenue & profit entirely in INR (price/cost are already in INR from the UI)
+    display_revenue = realistic_demand * price          # price in INR
+    display_profit  = realistic_demand * (price - cost) # cost in INR
+
+    # Margin is price-based ratio, currency-agnostic
+    margin = ((price - cost) / price * 100) if price > 0 else 0
     
     # Custom Cards Layout - 2 columns (Revenue & Profit only)
     c1, c2 = st.columns(2)
@@ -288,30 +340,29 @@ try:
         st.markdown(f"""
 <div class="metric-card">
     <div>
-        <div class="metric-title">Est. Revenue</div>
-        <div class="metric-value">${pred_revenue:,.0f}</div>
+        <div class="metric-title">Est. Monthly Revenue (₹)</div>
+        <div class="metric-value">₹{display_revenue:,.0f}</div>
     </div>
     <div>
             <div class="metric-delta delta-pos">
-            <span>+ $42.8k</span>
+            <span>↑ Growing</span>
         </div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
     with c2:
-        profit_delta_class = "delta-pos" if pred_profit >= 0 else "delta-neg"
-        profit_arrow = "↑" if pred_profit >= 0 else "↓"
-        # Using a mock delta for visual consistency as in the screenshot
-        delta_val = f"{profit_arrow} ${abs(pred_profit * 0.08):,.0f}" if pred_profit >= 0 else f"{profit_arrow} ${abs(pred_profit * 0.12):,.0f}"
+        profit_delta_class = "delta-pos" if display_profit >= 0 else "delta-neg"
+        profit_arrow = "↑" if display_profit >= 0 else "↓"
+        delta_val = f"{profit_arrow} ₹{abs(display_profit * 0.08):,.0f}" if display_profit >= 0 else f"{profit_arrow} ₹{abs(display_profit * 0.12):,.0f}"
         
         st.markdown(f"""
 <div class="metric-card" style="border-color: #1f6feb;">
     <div style="display: flex; justify-content: space-between;">
-        <div class="metric-title" style="color: #58a6ff;">Predicted Net Profit</div>
+        <div class="metric-title" style="color: #58a6ff;">Est. Monthly Profit (₹)</div>
         <span class="live-badge" style="background: #1f6feb; color: white; border: none;">OPTIMIZED</span>
     </div>
-    <div class="metric-value" style="color: #58a6ff;">${pred_profit:,.0f}</div>
+    <div class="metric-value" style="color: #58a6ff;">₹{display_profit:,.0f}</div>
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <div class="metric-delta {profit_delta_class}">
             <span>{delta_val}</span>
@@ -340,8 +391,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 try:
-    # Direct Function Call
-    sens_data = backend.get_sensitivity_analysis(payload)
+    # Direct Function Call — pass INR rate and market_presence so graph matches UI scale
+    sens_data = backend.get_sensitivity_analysis(
+        payload,
+        inr_rate=INR_TO_USD,
+        market_presence=market_presence
+    )
     
     if "plot_json" in sens_data:
         fig_json = sens_data["plot_json"]
@@ -365,18 +420,90 @@ except Exception as e:
 
 st.markdown('</div>', unsafe_allow_html=True) # End chart-box
 
+# --- Ground Truth: Derived metrics for AI prompt ---
+try:
+    # Optimal price = USD price that yielded best profit, converted to INR
+    sens_profits = sens_data.get("profits", [])
+    sens_prices_usd = sens_data.get("prices", [])
+    if sens_profits and sens_prices_usd:
+        best_idx = sens_profits.index(max(sens_profits))
+        optimal_price_inr = sens_prices_usd[best_idx] * INR_TO_USD
+    else:
+        optimal_price_inr = price
+except Exception:
+    optimal_price_inr = price
+
+price_gap_inr = price - competitor_price          # +ve = we're costlier
+current_margin_pct = margin                        # already computed above
+
 # --- 3. AI Recommendations ---
 st.markdown("<br>", unsafe_allow_html=True)
 col_rec, _ = st.columns([1, 1])
 
 with col_rec:
-    st.markdown("### 💡 AI Recommendations")
-    st.markdown("""
-    <div style="background: #1f242d; border: 1px dashed #30363d; border-radius: 12px; padding: 24px; display: flex; align-items: center; gap: 15px;">
+    st.markdown("### 💡 AI Strategic Recommendations")
+
+    # --- Generate Button (credit-preserving: only calls API on click) ---
+    if st.button("🔍 Generate Strategic Advice", type="secondary", use_container_width=True):
+        with st.spinner("AI is analyzing market trends..."):
+            try:
+                prompt = (
+                    f"You are a Senior Pricing Consultant. Based on our ML model results: "
+                    f"The product is a '{selected_cat}' with a price elasticity of {elasticity_index:.2f}. "
+                    f"Our price is ₹{price:,.0f} vs Competitor at ₹{competitor_price:,.0f} "
+                    f"(gap: ₹{abs(price_gap_inr):,.0f} {'higher' if price_gap_inr > 0 else 'lower'} than competitor). "
+                    f"Our ML model suggests an optimal price point of ₹{optimal_price_inr:,.0f}. "
+                    f"Current margin is {current_margin_pct:.1f}% and our market reach is {market_presence:.0f}%. "
+                    "<response-instructions>"
+                    f"Provide exactly 5 concise, professional, and easy to understand bullet points on how to improve profit and market share. "
+                    f"Keep each point under 30 words. Do not add any introduction or conclusion."
+                    "Remember that your audience is a non-technical person. Hence, keep your response clean and simple explanation."
+                    "</response-instructions>"
+                )
+                api_response = sarvam_client.chat.completions(
+                    model="sarvam-30b",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.5,
+                    top_p=1,
+                    max_tokens=4000,
+                )
+                # Extract raw text, then strip model reasoning tags before display
+                raw_text = api_response.choices[0].message.content
+                clean_response = re.sub(r'<think>.*?</think>', '', raw_text, flags=re.DOTALL).strip()
+                st.session_state.ai_advice = clean_response
+            except Exception as e:
+                st.session_state.ai_advice = None
+                st.error(f"Sarvam AI error: {e}")
+
+    # --- Display stored advice (persists across reruns) ---
+    if st.session_state.get("ai_advice"):
+        # Header card with badge and AI content inside the container
+        st.markdown(f"""
+    <div style="background: #1f242d; border: 1px solid #388bfd; border-radius: 12px;
+                padding: 24px; margin-top: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div style="font-size: 1rem; font-weight: 600; color: #e6edf3;">🧠 Strategic Advice</div>
+            <span style="background: linear-gradient(135deg,#1f6feb,#388bfd); color: white; font-size: 0.7rem;
+                         padding: 3px 10px; border-radius: 100px; font-weight: 700; letter-spacing: 0.5px;"
+            >AI GENERATED • Sarvam 30B</span>
+        </div>
+
+{st.session_state.ai_advice}
+
+    </div>
+    """, unsafe_allow_html=True)
+    else:
+        # Placeholder shown before first generation
+        st.markdown("""
+    <div style="background: #1f242d; border: 1px dashed #30363d; border-radius: 12px; padding: 24px;
+                display: flex; align-items: center; gap: 15px; margin-top: 12px;">
         <div style="font-size: 2rem;">🚀</div>
         <div>
             <div style="color: #e6edf3; font-weight: 600;">Advanced Strategy Module</div>
-             <div style="color: #8b949e; font-size: 0.9rem;">Competitive gap analysis and dynamic pricing suggestions coming soon.</div>
+            <div style="color: #8b949e; font-size: 0.9rem;">
+                Click <strong style='color:#58a6ff;'>Generate Strategic Advice</strong> above
+                to get AI-powered pricing recommendations tailored to your inputs.
+            </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
