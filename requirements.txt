@@ -23,5 +23,6 @@ huggingface_hub
 plotly
 altair<5
 requests
+sarvamai
 python-dotenv
 
